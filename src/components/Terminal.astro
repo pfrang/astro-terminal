@@ -1,0 +1,100 @@
+---
+
+---
+
+<div>
+    <h2>Terminal Logs</h2>
+
+    <form>
+        <input
+            type="text"
+            id="command-input"
+            placeholder="Enter command"
+            required
+        />
+        <button type="submit">Send</button>
+    </form>
+
+    <pre id="log-container"></pre>
+</div>
+
+<style>
+    pre {
+        background: #000;
+        color: #0f0;
+        padding: 1rem;
+        overflow-y: auto;
+        height: 400px;
+    }
+</style>
+<script>
+    let logs: any = [];
+    let ws: WebSocket;
+
+    function connectWebSocket() {
+        if (
+            ws &&
+            (ws.readyState === WebSocket.OPEN ||
+                ws.readyState === WebSocket.CONNECTING)
+        ) {
+            console.log("WebSocket is already open or connecting");
+            return;
+        }
+
+        ws = new WebSocket("ws://localhost:8080");
+
+        ws.onopen = () => {
+            console.log("WebSocket connection established");
+        };
+
+        ws.onmessage = (event) => {
+            console.log("Received message:", event.data); // Log the message to the console
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push(`[${timestamp}] ${event.data}`);
+            updateLogs();
+        };
+
+        ws.onclose = () => {
+            console.log("WebSocket connection closed"); // Log the connection close event
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push(`[${timestamp}] Connection closed`);
+            updateLogs();
+        };
+
+        ws.onerror = (error) => {
+            console.error("WebSocket error:", error); // Log any errors
+        };
+    }
+
+    function updateLogs() {
+        const logContainer = document.getElementById("log-container");
+        if (logContainer) {
+            logContainer.innerHTML = logs
+                .map((log) => `<div>${log}</div>`)
+                .join("");
+            logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to the bottom
+        }
+    }
+
+    function sendCommand(event) {
+        event.preventDefault();
+        const commandInput = document.getElementById("command-input");
+        const command = (commandInput as HTMLInputElement).value;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            console.log(`Sending command: ${command}`); // Log the command being sent
+            ws.send(command);
+            (commandInput as HTMLInputElement).value = "";
+        } else {
+            console.error("WebSocket is not connected");
+        }
+    }
+
+    document.addEventListener("submit", sendCommand);
+
+    if (typeof window !== "undefined") {
+        console.log("Running in the browser");
+        if (!ws || ws.readyState === WebSocket.CLOSED) {
+            connectWebSocket();
+        }
+    }
+</script>
