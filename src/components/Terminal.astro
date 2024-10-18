@@ -41,7 +41,12 @@
             return;
         }
 
-        ws = new WebSocket("ws://localhost:8080");
+        // Dynamically determine the WebSocket URL based on the current location
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const host = window.location.host;
+        const wsUrl = `${protocol}//${host}/ws/`;
+
+        ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
             console.log("WebSocket connection established");

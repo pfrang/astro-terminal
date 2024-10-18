@@ -13,6 +13,7 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 COPY astro.config.mjs ./
+
 # Build the client
 RUN npm run build
 
@@ -32,7 +33,12 @@ RUN npm install
 COPY server/ .
 
 # Stage 3: Final stage to combine client and server
-FROM node:20
+FROM nginx:latest
+
+# Install Node.js for running the frontend and backend servers
+RUN apt-get update && apt-get install -y curl gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
 
 # Set the working directory
 WORKDIR /app
@@ -41,18 +47,18 @@ WORKDIR /app
 COPY --from=client-builder /app/dist ./dist
 
 # Copy the server from the server stage
-COPY --from=server /server ./server
+COPY --from=server /server /server
 COPY astro.config.mjs ./
 
 # Install dependencies for the final stage
 COPY package.json package-lock.json ./
 RUN npm install
 
-# Expose the server port for the front-end
-EXPOSE 4321
+# Copy Nginx configuration file
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose the server port for the back-end
-EXPOSE 8080
+# Expose the server port for Nginx
+EXPOSE 3000
 
-# Start both the front-end and back-end servers
-CMD ["sh", "-c", "npm run preview --host & node server/server.js"]
+# Start Nginx and both the front-end and back-end servers
+CMD ["sh", "-c", "nginx && npm run preview --host & node /server/server.js"]
