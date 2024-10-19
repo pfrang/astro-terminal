@@ -5,17 +5,13 @@
 <div>
     <h2>Terminal Logs</h2>
 
-    <form>
-        <input
-            type="text"
-            id="command-input"
-            placeholder="Enter command"
-            required
-        />
-        <button type="submit">Send</button>
-    </form>
-
-    <pre id="log-container"></pre>
+    <pre
+        id="log-container">
+        <div id="log-content" />
+        <form id="command-form">
+            <input type="text" id="command-input" placeholder="Enter command" autofocus required />
+        </form>
+    </pre>
 </div>
 
 <style>
@@ -25,11 +21,37 @@
         padding: 1rem;
         overflow-y: auto;
         height: 400px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #log-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    form {
+        display: flex;
+    }
+
+    input {
+        flex: 1;
+        background: #000;
+        color: #0f0;
+        border: none;
+        padding: 0.5rem;
+        font-family: monospace;
+        padding: 0px;
+    }
+
+    input:focus {
+        outline: none;
     }
 </style>
+
 <script>
-    let logs: any = [];
-    let ws: WebSocket;
+    let logs = [];
+    let ws;
 
     function connectWebSocket() {
         if (
@@ -41,7 +63,6 @@
             return;
         }
 
-        // Dynamically determine the WebSocket URL based on the current location
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const host = window.location.host;
         const wsUrl = `${protocol}//${host}/ws/`;
@@ -53,31 +74,32 @@
         };
 
         ws.onmessage = (event) => {
-            console.log("Received message:", event.data); // Log the message to the console
+            console.log("Received message:", event.data);
             const timestamp = new Date().toLocaleTimeString();
             logs.push(`[${timestamp}] ${event.data}`);
             updateLogs();
         };
 
         ws.onclose = () => {
-            console.log("WebSocket connection closed"); // Log the connection close event
+            console.log("WebSocket connection closed");
             const timestamp = new Date().toLocaleTimeString();
             logs.push(`[${timestamp}] Connection closed`);
             updateLogs();
         };
 
         ws.onerror = (error) => {
-            console.error("WebSocket error:", error); // Log any errors
+            console.error("WebSocket error:", error);
         };
     }
 
     function updateLogs() {
-        const logContainer = document.getElementById("log-container");
-        if (logContainer) {
-            logContainer.innerHTML = logs
+        const logContent = document.getElementById("log-content");
+        if (logContent) {
+            logContent.innerHTML = logs
                 .map((log) => `<div>${log}</div>`)
                 .join("");
-            logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to the bottom
+            const logContainer = document.getElementById("log-container");
+            logContainer.scrollTop = logContainer.scrollHeight;
         }
     }
 
@@ -86,7 +108,7 @@
         const commandInput = document.getElementById("command-input");
         const command = (commandInput as HTMLInputElement).value;
         if (ws && ws.readyState === WebSocket.OPEN) {
-            console.log(`Sending command: ${command}`); // Log the command being sent
+            console.log(`Sending command: ${command}`);
             ws.send(command);
             (commandInput as HTMLInputElement).value = "";
         } else {
@@ -94,12 +116,23 @@
         }
     }
 
-    document.addEventListener("submit", sendCommand);
+    document.addEventListener("DOMContentLoaded", () => {
+        const commandForm = document.getElementById("command-form");
+        commandForm.addEventListener("submit", sendCommand);
 
-    if (typeof window !== "undefined") {
-        console.log("Running in the browser");
-        if (!ws || ws.readyState === WebSocket.CLOSED) {
-            connectWebSocket();
+        const commandInput = document.getElementById("command-input");
+        commandInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                commandForm.dispatchEvent(new Event("submit"));
+            }
+        });
+
+        if (typeof window !== "undefined") {
+            console.log("Running in the browser");
+            if (!ws || ws.readyState === WebSocket.CLOSED) {
+                connectWebSocket();
+            }
         }
-    }
+    });
 </script>
