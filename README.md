@@ -1,5 +1,8 @@
 # Astro Starter Kit: Basics
 
+
+Deployed on: https://console.cloud.google.com/run/detail/europe-west10/my-second-profile-page/metrics?cloudshell=true&project=windy-bounty-363521
+
 ```sh
 npm create astro@latest -- --template basics
 ```
